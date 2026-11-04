@@ -1,0 +1,70 @@
+name: AOSP17 official extras exact tree and critical build inputs
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-system-extras-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            .github
+            docs
+            tools
+          sparse-checkout-cone-mode: false
+      - name: Read exact tagged Gitiles tree and selected AOSP17 source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          from urllib.request import Request, urlopen
+
+          base = "https://android.googlesource.com/platform/system/extras/+/"
+          tag = "refs/tags/android-17.0.0_r1"
+          def load(path, fmt):
+              url = f"{base}{tag}/{path}?format={fmt}"
+              request = Request(url, headers={"User-Agent": "PixelExperience-Reborn-A17-source-integrity"})
+              with urlopen(request, timeout=60) as r:
+                  return r.read()
+          def txt(path):
+              return base64.b64decode(load(path, "TEXT"), validate=False).decode("utf-8")
+
+          root = load("", "JSON").decode("utf-8")
+          assert root.startswith(")]}'"), "not a Gitiles JSON tree response"
+          tree = json.loads(root.split("\n", 1)[1])
+          assert tree["id"] == "8b4f977da051354a762f01176fa0ab5e44a9d01e", tree.get("id")
+          names = {entry["name"] for entry in tree["entries"]}
+          for name in ("partition_tools", "verity", "libfscrypt", "f2fs_utils",
+                       "ext4_utils", "bootctl", "postinst", "checkpoint_gc",
+                       "pinner", "libatrace_rust", "kcmdlinectrl"):
+              assert name in names, name
+
+          pt = txt("partition_tools/Android.bp")
+          bs = txt("verity/BootSignature.java")
+          fscrypt = txt("libfscrypt/Android.bp")
+          f2fs = txt("f2fs_utils/Android.bp")
+          for name in ('name: "lpunpack"', 'name: "lpdump"', 'name: "lpdumpd"',
+                       'name: "liblpdump"', 'name: "lpflash"', 'name: "lpmake"',
+                       '"libsnapshot_cow_defaults"', '"libsnapshot_hal_deps"'):
+              assert name in pt, name
+          assert 'name: "lpunpack_static"' not in pt, "PE host-only tool is not in official build"
+          assert 'if (headerVersion > 0)' in bs, "upstream legacy BootSignature changed unexpectedly"
+          assert 'if (headerVersion > 4)' not in bs, "old PE QCDT workaround is not official AOSP17"
+          assert 'name: "libfscrypt"' in fscrypt
+          assert 'name: "mkf2fsuserimg"' in f2fs
+          print("PASS: exact official AOSP17 r1 extras tree, partition/verity/FBE source inputs")
+          print("NOT TESTED: Android17 Soong compilation, AVB signing, FBE/OTA or mondrian boot")
+          PY
