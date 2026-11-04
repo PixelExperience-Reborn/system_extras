@@ -30,7 +30,8 @@ Sources: old commit patch/diffs in the historical repository; official upstream 
 
 - [x] Historical Android14 exact branch/commits classified; old static unpack helper and legacy BootSignature changes identified.
 - [x] Official Android17 exact tree and modern partition/verity/crypto source ownership confirmed.
-- [x] Host-only historical source CI (targeted sparse checkout) created.
+- [x] Historical sparse-checkout source inventory CI [PASS #41791807600](https://github.com/PixelExperience-Reborn/system_extras/actions/runs/41791807600).
+- [x] Official AOSP17 r1 tagged Gitiles source tree, partitions/verity/FBE build input integrity [PASS #41791807782](https://github.com/PixelExperience-Reborn/system_extras/actions/runs/41791807782). Source-only checks, not an Android17 Soong build.
 - [ ] Verify official Android17 full `system/extras` repo sync/Soong build with `system/core`, `vold`, `update_engine`, `libsnapshot` and `bootctl`.
 - [ ] Test host `lpunpack` and dynamic partition metadata on known synthetic, non-sensitive fixtures; test optional `lpunpack_static` separately if required by extraction workflow.
 - [ ] Verify actual `boot.img`, `vendor_boot.img`, `dtbo.img` layout, AVB/vbmeta chaining, rollback index, partitions and recovery/bootloader constraints on independent mondrian PE-Reborn trees.
