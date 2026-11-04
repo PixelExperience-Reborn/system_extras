@@ -1,0 +1,34 @@
+name: AOSP17 system extras legacy host-only audit
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-system-extras-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived-extras-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            .github
+            docs
+            tools
+            partition_tools/Android.bp
+            verity/BootSignature.java
+            libfscrypt/Android.bp
+            f2fs_utils/Android.bp
+            bootctl/Android.bp
+            postinst/Android.bp
+            Android.mk
+          sparse-checkout-cone-mode: false
+      - name: Audit historical lp-tools, boot header and fscrypt declarations
+        run: python3 tools/verify_a17_system_extras_legacy.py
